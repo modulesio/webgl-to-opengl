@@ -112,6 +112,10 @@ function versionify(tokens, newVersion) {
         var number = match[1].replace(/\s\s+/g, ' ')
         if (number === '300 es') {
           number = '150';
+          tokens.splice(i, 1, {
+            data: `#version ${number}`,
+            type: 'preprocessor'
+          })
         }
         if (number === newVersion) {
           // this shader is already in new version
