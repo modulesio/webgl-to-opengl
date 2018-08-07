@@ -8,12 +8,15 @@ module.exports.fragment = transpile.bind(null, false)
 module.exports.mapName = mapName
 module.exports.unmapName = unmapName
 
-var coreGLSLExtensions = [
+const coreGLSLExtensions = [
   'GL_OES_standard_derivatives',
   'GL_EXT_frag_depth',
   'GL_EXT_draw_buffers',
-  'GL_EXT_shader_texture_lod'
-]
+  'GL_EXT_shader_texture_lod',
+];
+const coreGLSL2Extensions = [
+  'GL_ARB_separate_shader_objects',
+];
 
 var reservedWords = require('./lib/builtins')
 
@@ -33,7 +36,7 @@ function transpile(isVertex, source, newVersion = '150') {
         }
       }
     }
-    
+
     var fragColorName = null
     var fragDepthName = null
     var i, token
@@ -103,6 +106,19 @@ function insertFragOutput (tokens, name, dataType) {
   ])
 }
 
+function addGlsl2Extensions(tokens, i) {
+  tokens.splice.apply(tokens, [i, 0, {
+    data: '\n',
+    type: 'whitespace'
+  }].concat(coreGLSL2Extensions.map(ext => ({
+    data: `#extension ${ext} : enable`,
+    type: 'preprocessor'
+  }))).concat([{
+    data: '\n',
+    type: 'whitespace'
+  }]))
+}
+
 function versionify(tokens, newVersion) {
   for (var i = 0; i < tokens.length; i++) {
     var token = tokens[i]
@@ -118,6 +134,7 @@ function versionify(tokens, newVersion) {
           })
         }
         if (number === newVersion) {
+          addGlsl2Extensions(tokens, i + 1)
           // this shader is already in new version
           return number
         } else if (number === '100') {
@@ -125,6 +142,7 @@ function versionify(tokens, newVersion) {
             data: `#version ${newVersion}`,
             type: 'preprocessor'
           })
+          addGlsl2Extensions(tokens, i + 1);
           return number
         } else {
           throw new Error('unknown #version type: ' + number)
@@ -137,10 +155,8 @@ function versionify(tokens, newVersion) {
   tokens.splice(0, 0, {
     data: `#version ${newVersion}`,
     type: 'preprocessor'
-  }, {
-    data: '\n',
-    type: 'whitespace'
   })
+  addGlsl2Extensions(tokens, 1)
 
   return null
 }
