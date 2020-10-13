@@ -67,6 +67,8 @@ function transpile(isVertex, source, newVersion = defaultNewVersion) {
       }
     }
   }
+  
+  undefPredeclarations(tokens);
 
   return stringify(tokens)
 }
@@ -121,6 +123,22 @@ function insertFragOutput (tokens, name, dataType) {
     type: 'whitespace'
   }]))
 } */
+
+function undefPredeclarations(tokens) {
+  for (;;) {
+    const startIndex = tokens.findIndex(t => t.type === 'preprocessor' && /^#ifdef\s+(?:GL_ARB_gpu_shader5|GL_NV_gpu_shader5)/.test(t.data));
+    if (startIndex !== -1) {
+      const endIndex = findNextEndif(tokens, startIndex + 1);
+      if (endIndex !== -1) {
+        tokens.splice(startIndex, endIndex - startIndex + 1);
+      } else {
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+}
 
 function versionify(tokens, newVersion) {
   for (var i = 0; i < tokens.length; i++) {
